@@ -111,23 +111,37 @@ if username:
                        color_discrete_sequence=['#00CC96'])
         st.plotly_chart(fig2, use_container_width=True)
 
-    # Top Repositories as Cards
+    # 🏆 Featured Repositories 
     st.subheader("🏆 Featured Repositories")
     for repo in stats["top_repos"]:
         with st.container():
             st.markdown(f"""
             <div class="repo-card">
-                <strong>{repo['name']}</strong> | ⭐ {repo['stargazers_count']} | 🍴 {repo['forks_count']}<br>
-                <small>Language: {repo['language'] or 'N/A'}</small>
+                <div style="display: flex; justify-content: space-between;">
+                    <strong>{repo['name']}</strong>
+                    <span>⭐ {repo['stargazers_count']} | 🍴 {repo['forks_count']}</span>
+                </div>
+                <small style="opacity: 0.8;">Main Language: {repo['language'] or 'N/A'}</small>
             </div>
             """, unsafe_allow_html=True)
 
-    # Automated Summary
+    # 📝 Profile Summary 
+    st.subheader("📝 Profile Summary")
+
+    # Use username as a fallback if the GitHub 'name' field is None or empty
+    display_name = profile.get('name') or username
+    primary_skill = max(stats['languages'], key=stats['languages'].get) if stats['languages'] else 'various technologies'
+
+    summary = f"""
+    **{display_name}** is a **{stats['level']}** developer with a high focus on **{primary_skill}**. 
+    The developer manages **{stats['repos']}** repositories with a total of **{stats['stars']}** stars and **{stats['forks']}** forks.
+    """
+
     st.success(f"**Dev Level:** {stats['level']}")
-    st.info(f"**Insights:** {profile.get('name', username)} is a {stats['level']} developer with a high focus on {max(stats['languages'], key=stats['languages'].get) if stats['languages'] else 'various technologies'}.")
+    st.info(summary)
 
 # Comparison Section (Collapsible)
-with st.expander("⚔️Developer Comparison"):
+with st.expander("⚔️ Developer Comparison"):
     u1, u2 = st.columns(2)
     user1 = u1.text_input("Username 1", key="comp_user1")
     user2 = u2.text_input("Username 2", key="comp_user2")
@@ -137,14 +151,16 @@ with st.expander("⚔️Developer Comparison"):
             p1, p2 = get_user_profile(user1), get_user_profile(user2)
             
             if p1 and p2:
-                r1, r2 = get_repositories(user1), get_repositories(user2)
-                s1, s2 = analyze_repos(r1, p1["followers"]), analyze_repos(r2, p2["followers"])
+                r1 = get_repositories(user1)
+                r2 = get_repositories(user2)
+                s1 = analyze_repos(r1, p1["followers"])
+                s2 = analyze_repos(r2, p2["followers"])
                 
                 # 1. Detailed Metric Table
                 df_compare = pd.DataFrame({
                     "Metric": ["Level", "Primary Language", "Total Repos", "Total Stars", "Avg Stars/Repo", "Followers", "Dev Score"],
-                    user1: [s1["level"], s1["primary_lang"], s1["repos"], s1["stars"], s1["avg_stars"], s1["followers"], round(s1["score"])],
-                    user2: [s2["level"], s2["primary_lang"], s2["repos"], s2["stars"], s2["avg_stars"], s2["followers"], round(s2["score"])]
+                    user1: [s1["level"], s1.get("primary_lang", "N/A"), s1["repos"], s1["stars"], s1.get("avg_stars", 0), s1.get("followers", p1["followers"]), round(s1["score"])],
+                    user2: [s2["level"], s2.get("primary_lang", "N/A"), s2["repos"], s2["stars"], s2.get("avg_stars", 0), s2.get("followers", p2["followers"]), round(s2["score"])]
                 }).set_index("Metric")
                 
                 st.table(df_compare)
@@ -154,7 +170,7 @@ with st.expander("⚔️Developer Comparison"):
                     "Developer": [user1, user2],
                     "Score": [s1["score"], s2["score"]],
                     "Stars": [s1["stars"], s2["stars"]],
-                    "Followers": [s1["followers"], s2["followers"]]
+                    "Followers": [p1["followers"], p2["followers"]]
                 })
                 
                 fig_comp = px.bar(chart_data, x="Developer", y="Score", 
