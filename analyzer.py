@@ -1,3 +1,4 @@
+# Updated analyzer.py
 from collections import Counter
 from datetime import datetime
 
@@ -9,9 +10,13 @@ def analyze_repos(repos, followers):
     languages = [repo["language"] for repo in repos if repo["language"]]
     language_count = Counter(languages)
     skills = list(language_count.keys())
+    
+    # NEW: Determine primary language
+    primary_lang = language_count.most_common(1)[0][0] if languages else "N/A"
+    
+    # NEW: Popularity ratio
+    avg_stars = round(total_stars / total_repos, 2) if total_repos > 0 else 0
 
-    # Improved Scoring Algorithm
-    # Give weight to popularity (stars/forks) and community reach (followers)
     score = (total_repos * 1) + (total_stars * 2) + (total_forks * 1.5) + (followers * 0.5)
 
     if score < 15:
@@ -34,6 +39,9 @@ def analyze_repos(repos, followers):
         "forks": total_forks,
         "languages": language_count,
         "skills": skills,
+        "primary_lang": primary_lang, # New
+        "avg_stars": avg_stars,       # New
+        "followers": followers,       # New
         "score": score,
         "level": level,
         "top_repos": top_repos,

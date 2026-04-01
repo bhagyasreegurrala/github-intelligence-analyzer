@@ -10,29 +10,45 @@ st.set_page_config(page_title="GitHub Intelligence", page_icon="🚀", layout="w
 # Custom CSS for a professional look
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .stMetric {
-        background-color: #ffffff;
+    /* Metric Cards Fix */
+    div[data-testid="stMetric"] {
+        background-color: rgba(255, 255, 255, 0.05); /* Semi-transparent background */
+        border: 1px solid rgba(255, 255, 255, 0.2);
         padding: 15px;
         border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        color: inherit; /* Inherits text color from theme */
     }
+    
+    /* Repo Cards Fix */
     .repo-card {
-        border: 1px solid #e6e9ef;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 10px;
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.05);
+        color: inherit;
     }
+
+    /* Skill Pills Fix */
     .skill-pill {
         display: inline-block;
         padding: 2px 10px;
         border-radius: 15px;
-        background-color: #e1f5fe;
-        color: #01579b;
+        background-color: #1e3a8a; /* Darker blue for visibility */
+        color: #ffffff;
         font-size: 12px;
         margin: 2px;
-        border: 1px solid #01579b;
+        border: 1px solid #3b82f6;
+    }
+    
+    /* Ensure metric labels are visible */
+    [data-testid="stMetricLabel"] {
+        color: inherit !important;
+    }
+    
+    /* Ensure metric values are visible */
+    [data-testid="stMetricValue"] {
+        color: inherit !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -111,20 +127,41 @@ if username:
     st.info(f"**Insights:** {profile.get('name', username)} is a {stats['level']} developer with a high focus on {max(stats['languages'], key=stats['languages'].get) if stats['languages'] else 'various technologies'}.")
 
 # Comparison Section (Collapsible)
-with st.expander("⚔️ Compare Developers"):
+with st.expander("⚔️Developer Comparison"):
     u1, u2 = st.columns(2)
-    user1 = u1.text_input("Username 1")
-    user2 = u2.text_input("Username 2")
+    user1 = u1.text_input("Username 1", key="comp_user1")
+    user2 = u2.text_input("Username 2", key="comp_user2")
 
     if user1 and user2:
-        # (Comparison logic remains the same but within this expander)
-        p1, p2 = get_user_profile(user1), get_user_profile(user2)
-        r1, r2 = get_repositories(user1), get_repositories(user2)
-        s1, s2 = analyze_repos(r1, p1["followers"]), analyze_repos(r2, p2["followers"])
-        
-        df_compare = pd.DataFrame({
-            "Metric": ["Repos", "Stars", "Forks", "Score"],
-            user1: [s1["repos"], s1["stars"], s1["forks"], round(s1["score"])],
-            user2: [s2["repos"], s2["stars"], s2["forks"], round(s2["score"])]
-        }).set_index("Metric")
-        st.table(df_compare)
+        with st.spinner('Calculating comparison...'):
+            p1, p2 = get_user_profile(user1), get_user_profile(user2)
+            
+            if p1 and p2:
+                r1, r2 = get_repositories(user1), get_repositories(user2)
+                s1, s2 = analyze_repos(r1, p1["followers"]), analyze_repos(r2, p2["followers"])
+                
+                # 1. Detailed Metric Table
+                df_compare = pd.DataFrame({
+                    "Metric": ["Level", "Primary Language", "Total Repos", "Total Stars", "Avg Stars/Repo", "Followers", "Dev Score"],
+                    user1: [s1["level"], s1["primary_lang"], s1["repos"], s1["stars"], s1["avg_stars"], s1["followers"], round(s1["score"])],
+                    user2: [s2["level"], s2["primary_lang"], s2["repos"], s2["stars"], s2["avg_stars"], s2["followers"], round(s2["score"])]
+                }).set_index("Metric")
+                
+                st.table(df_compare)
+
+                # 2. Visual Bar Chart Comparison
+                chart_data = pd.DataFrame({
+                    "Developer": [user1, user2],
+                    "Score": [s1["score"], s2["score"]],
+                    "Stars": [s1["stars"], s2["stars"]],
+                    "Followers": [s1["followers"], s2["followers"]]
+                })
+                
+                fig_comp = px.bar(chart_data, x="Developer", y="Score", 
+                                 title="Score Comparison",
+                                 color="Developer",
+                                 text_auto=True)
+                st.plotly_chart(fig_comp, use_container_width=True)
+                
+            else:
+                st.error("Check usernames and try again.")
