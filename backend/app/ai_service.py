@@ -13,7 +13,7 @@ def generate_developer_insights(profile_data: dict, repos_data: list) -> dict:
     if not GEMINI_API_KEY or GEMINI_API_KEY == "your_gemini_api_key_here":
         return get_fallback_insights(profile_data)
         
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     prompt = f"""
     Act as a Senior Technical Recruiter and AI Engineering Manager.
@@ -53,15 +53,13 @@ def generate_developer_insights(profile_data: dict, repos_data: list) -> dict:
     """
     
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        if text.startswith('```json'):
-            text = text[7:]
-        if text.startswith('```'):
-            text = text[3:]
-        if text.endswith('```'):
-            text = text[:-3]
-        return json.loads(text.strip())
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        return json.loads(response.text)
     except Exception as e:
         print(f"Gemini API Error: {e}")
         return get_fallback_insights(profile_data)
