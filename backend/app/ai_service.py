@@ -13,7 +13,7 @@ def generate_developer_insights(profile_data: dict, repos_data: list) -> dict:
     if not GEMINI_API_KEY or GEMINI_API_KEY == "your_gemini_api_key_here":
         return get_fallback_insights(profile_data)
         
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-pro')
     
     prompt = f"""
     Act as a Senior Technical Recruiter and AI Engineering Manager.
