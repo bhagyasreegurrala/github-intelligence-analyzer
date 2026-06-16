@@ -53,13 +53,15 @@ def generate_developer_insights(profile_data: dict, repos_data: list) -> dict:
     """
     
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                response_mime_type="application/json",
-            )
-        )
-        return json.loads(response.text)
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith('```json'):
+            text = text[7:]
+        if text.startswith('```'):
+            text = text[3:]
+        if text.endswith('```'):
+            text = text[:-3]
+        return json.loads(text.strip())
     except Exception as e:
         print(f"Gemini API Error: {e}")
         return get_fallback_insights(profile_data)
